@@ -181,6 +181,11 @@ async function readCode(c){c=(c||'').trim().replace(/\s+/g,'');const m=c.match(/
 $('impBtn').onclick=()=>{$('impTxt').value='';$('impErr').textContent='';$('impDlg').hidden=false};$('impClose').onclick=()=>$('impDlg').hidden=true;
 $('impGo').onclick=async()=>{try{const k=await readCode($('impTxt').value);const m=merge(readLocal(),k);KEYS.forEach(x=>{if(m[x]!=null)LS.set(x,m[x])});if(!pname()&&k.player_name)LS.set('player_name',k.player_name);
  $('impDlg').hidden=true;prog();const n=pname();$('myName').textContent=n?'✏️ 我的名字：'+n:'✏️ 設定名字';$('nameDlg').hidden=!!n;msg('✅ 存檔已匯入！','ok');try{push()}catch(e){}}catch(e){$('impErr').textContent='代碼看起來不完整，請確認整串都有複製到'}};
+/* 專屬連結：網址後面加 #p=名字，第一次打開自動載入那位玩家的進度（只會增加不會減少） */
+const PROFILES={eunice:'AGW1z.H4sIAI/xBmsC/3WQzW6DMBCE32XPPnjNX8i9T9BjXSGHuG0UByIwQSji3euF3ebUC/P5h5n1POEBR1QQ07eqi1LnuqjNIVdw9csIxyfcvkIzRjekBTwtaAvHTFlAVsOaseasBWvJWrEeWGvx+TMURxRLFE8UUxRXFFsUXxRjJGdDk2kBFDACmUAuUAiUApUAOZsV1FbF1IW+vaYuMp12xq6fm3Pf+b2cMN1OfrDUqIWTd4KX1jPFfu4YvwuBUoAikZJO808zugfbbvWno3/qN1y/4foN12/WBPu8/pzWJUX0gVDTyZ0s6U4b0qjbFU5ATkBOQE5ATkBOQPr77oa4pMWHVqjMp9rnjX4b+bX5EKM4xRe9Xy8hyKvvwS1+aDp3o4dbeJu6rTlY118Np+bIqAIAAA=='};
+(async()=>{const m=location.hash.match(/p=([a-z0-9_]+)/i);if(!m)return;const c=PROFILES[m[1].toLowerCase()];if(!c)return;
+ try{const k=await readCode(c);const mm=merge(readLocal(),k);KEYS.forEach(x=>{if(mm[x]!=null)LS.set(x,mm[x])});if(k.player_name)LS.set('player_name',k.player_name);
+  history.replaceState(null,'',location.pathname+location.search);prog();const n=pname();$('myName').textContent='✏️ 我的名字：'+n;$('nameDlg').hidden=true;nameChecked=true;msg('✅ 歡迎 '+n+'！你的進度已經載入','ok')}catch(e){}})();
 $('expCopy').onclick=()=>copyTxt($('expTxt').value);$('expClose').onclick=()=>$('expDlg').hidden=true;
 let nameChecked=false;function checkName(){if(nameChecked)return;nameChecked=true;const n=pname();$('myName').textContent=n?'✏️ 我的名字：'+n:'✏️ 設定名字';if(!n)askName(true)}
 {const n=pname();if(n)$('myName').textContent='✏️ 我的名字：'+n}setTimeout(checkName,4000);
