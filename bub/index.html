@@ -77,6 +77,8 @@ svg.path{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .tip{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);pointer-events:none;z-index:15;font-weight:900;font-size:clamp(20px,4.2vh,40px);white-space:nowrap;max-width:96vw;
  color:#fff;text-shadow:0 0 10px #ff4fd8,0 3px 0 #6a1b9a;opacity:0}
 .tip.go{animation:tipa 1.4s ease-out}
+.tip.long{white-space:normal;width:88vw;max-width:520px;text-align:center;font-size:clamp(17px,2.9vh,28px);line-height:1.35;background:#1a0f3ccc;padding:.6em .9em;border-radius:18px;border:2px solid #ffe27a88}
+.tip.long.go{animation:tipa 3.4s ease-out}
 @keyframes tipa{0%{opacity:0;transform:translate(-50%,-30%) scale(.5)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}30%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-80%)}}
 #sndBtn{position:absolute;left:1.4vh;top:1.4vh;display:none;z-index:30;width:5vh;height:5vh;border-radius:50%;border:none;background:#0008;color:#fff;font-size:2.6vh;cursor:pointer}
 #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#1a1040;z-index:50;font-size:2.4vh;flex-direction:column;gap:2vh}
@@ -879,8 +881,8 @@ function useSkill(s){
  const L=G.L,weak=MONS[L.mon].weak;
  G.busy=1;G.cutin={h,t:0,go:()=>skillFx(h,L,weak)};Audio_.voice('voice_skill'+h);if(HEROES[h].snd)setTimeout(()=>Audio_.play(HEROES[h].snd,.9),1400);
 }
-/* ===== 隱藏大招：三位夥伴大招同時集滿 → 合體奧義，每招傷害 ×1.5 ===== */
-const TRIO_MUL=1.5;
+/* ===== 隱藏大招：三位夥伴大招同時集滿 → 合體奧義，每招傷害 ×1.8 ===== */
+const TRIO_MUL=1.8;
 function trioSlots(){if(!G||!G.party)return[];const r=[];for(let s=0;s<G.party.length;s++)if(G.gauge[s]>=G.need[s])r.push(s);return r.length>=3?r.slice(0,3):[]}
 function trioBtn(){return{x:18,y:SHOOT.y-40,w:250,h:60}}
 function useTrio(){
@@ -890,8 +892,9 @@ function useTrio(){
  hs.forEach((h,i)=>setTimeout(()=>{Audio_.play(SKSND[HEROES[h].c],.9)},i*260));Audio_.voice('voice_skill'+hs[0]);
  const g0=G;G.cutin={trio:hs,h:hs[0],t:0,go:()=>{hs.forEach((h,i)=>setTimeout(()=>{if(G===g0&&G.state==='play')skillFx(h,L,weak,TRIO_MUL)},i*420))}};
 }
-function drawTrioBtn(){const sl=trioSlots();if(!sl.length||G.cutin||G.state!=='play'){return}
- if(!G.trioSeen){G.trioSeen=1;tip('✨ 隱藏大招：合體奧義！');Audio_.play('ready',.9,.8)}
+function drawTrioBtn(){const sl=trioSlots();if(!sl.length||G.cutin||G.state!=='play'){
+  if(G&&G.state==='play'&&!G.cutin&&G.party&&G.party.length>=3){let f=0;for(let q=0;q<G.party.length;q++)if(G.gauge[q]>=G.need[q])f++;if(f===2&&!G.trio2){G.trio2=1;tip('💡 再集滿 1 位大招，就能發動合體奧義！')}if(f<2)G.trio2=0}return}
+ if(!G.trioSeen){G.trioSeen=1;tip('✨ 合體奧義可以發動！傷害 ×'+TRIO_MUL);Audio_.play('ready',.9,.8)}
  const b=trioBtn(),t=G.t;
  cx.save();cx.globalCompositeOperation='lighter';cx.strokeStyle=`rgba(255,230,120,${.5+.4*Math.sin(t*14)})`;cx.lineWidth=5;
  const pts=sl.map(s=>{const P=slotPos(s);return{x:P.x,y:P.foot-P.h*.55}});
@@ -900,7 +903,7 @@ function drawTrioBtn(){const sl=trioSlots();if(!sl.length||G.cutin||G.state!=='p
  cx.save();const sc=1+.06*Math.sin(t*10);cx.translate(b.x+b.w/2,b.y+b.h/2);cx.scale(sc,sc);
  const g=cx.createLinearGradient(0,-b.h/2,0,b.h/2);g.addColorStop(0,'#fff6b0');g.addColorStop(.5,'#ffb21e');g.addColorStop(1,'#ff4fa0');
  cx.shadowColor='#ffd23a';cx.shadowBlur=30+12*Math.sin(t*8);cx.fillStyle=g;rr(-b.w/2,-b.h/2,b.w,b.h,b.h/2);cx.fill();cx.shadowBlur=0;cx.lineWidth=4;cx.strokeStyle='#fff';cx.stroke();
- cx.font='900 28px "Zen Maru Gothic"';cx.textAlign='center';cx.textBaseline='middle';cx.lineWidth=6;cx.strokeStyle='#5a1240';cx.strokeText('✨ 合體奧義 ×1.5',0,2);cx.fillStyle='#fff';cx.fillText('✨ 合體奧義 ×1.5',0,2);
+ cx.font='900 28px "Zen Maru Gothic"';cx.textAlign='center';cx.textBaseline='middle';cx.lineWidth=6;cx.strokeStyle='#5a1240';cx.strokeText('✨ 合體奧義 ×'+TRIO_MUL,0,2);cx.fillStyle='#fff';cx.fillText('✨ 合體奧義 ×'+TRIO_MUL,0,2);
  cx.restore()}
 function drawTrioCutin(C,dt){const u=ux,W=UW,H=UH,t=C.t;u.setTransform(US,0,0,US,0,0);u.clearRect(0,0,W,H);
  const fout=t>UL_FIRE+.15?Math.max(0,1-(t-UL_FIRE-.15)/(UL_T-UL_FIRE-.15)):1;
@@ -1029,7 +1032,7 @@ function popFx(p){const x=p.x,y=p.y,P=G.parts;
 }
 function burst(x,y,c,n){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,v=2+Math.random()*7;G.parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:1,c,s:3+Math.random()*6})}}
 function floatTxt(x,y,t,c,s=36){G.floats.push({x,y,t,c,s,l:1})}
-function tip(t){const e=document.getElementById('tip');e.textContent=t;e.classList.remove('go');void e.offsetWidth;e.classList.add('go')}
+function tip(t){const e=document.getElementById('tip');e.textContent=t;e.classList.toggle('long',[...t].length>14);e.classList.remove('go');void e.offsetWidth;e.classList.add('go')}
 
 function win(){if(G.state!=='play')return;G.state='win';
  const pct=G.hp/G.maxHp;const st=pct>.8?3:pct>.45?2:1;
@@ -1462,7 +1465,7 @@ let bgmTurn=0;
 const BATTLE_BGMS=['bgm_battle','bgm_xmas','bgm_xmas2','bgm_xmas3'];
 function nextBattleBgm(){return BATTLE_BGMS[bgmTurn++%BATTLE_BGMS.length]}
 function newTips(L){SAVE.seen=SAVE.seen||{};const q=[];const add=(k,t)=>{if(!SAVE.seen[k]){SAVE.seen[k]=1;q.push(t)}};
- if(L.goal==='rescue')add('rescue','🐾 救援關：把小動物周圍的泡泡消光，或讓牠掉下來就能救出！');if(L.goal==='limit')add('limit','🫧 限步關：泡泡數量有限，用完前打倒魔物！');if(L.ice)add('ice','❄️ 冰凍泡泡：第一次只會打破冰，要再消一次！');if(L.chain)add('chain','⛓️ 鎖鏈泡泡：消掉旁邊的泡泡就會解鎖');if(L.energy)add('energy','⚡ 金光能量泡泡：消掉幫全隊補大招！');
+ if(L.goal==='rescue')add('rescue','🐾 救援關：把小動物周圍的泡泡消光，或讓牠掉下來就能救出！');if(L.goal==='limit')add('limit','🫧 限步關：泡泡數量有限，用完前打倒魔物！');if(L.ice)add('ice','❄️ 冰凍泡泡：第一次只會打破冰，要再消一次！');if(L.chain)add('chain','⛓️ 鎖鏈泡泡：消掉旁邊的泡泡就會解鎖');if(L.energy)add('energy','⚡ 金光能量泡泡：消掉幫全隊補大招！');if(L.i>=1||L.w>0)add('trio','✨ 隱藏技：3 位大招都集滿，就能發動「合體奧義」傷害 ×'+TRIO_MUL+'！');
  if(q.length){save();q.forEach((t,i)=>setTimeout(()=>{if(G&&G.state==='play')tip(t)},1200+i*3200))}}
 function startLevel(i){const ks=levelImgs(i);if(ks.every(k=>ok(IMG[k])))return startLevelNow(i);const ld=$('loading');ld.style.display='flex';$('ldBar').style.width='0%';let n=0;
  const go=()=>{if(go.d)return;go.d=1;ld.style.display='none';startLevelNow(i)};Promise.all(ks.map(k=>wantImg(k).then(()=>{n++;$('ldBar').style.width=(n/ks.length*100)+'%'}))).then(go);setTimeout(go,4000)}
