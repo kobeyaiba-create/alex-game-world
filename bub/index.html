@@ -362,7 +362,7 @@ let SAVE={stars:{},unlocked:0,gold:0,up:{},cleared:{},party:[0,1,2]};
 try{const s=JSON.parse(localStorage.getItem('bwh_save')||'null');if(s)SAVE=Object.assign(SAVE,s)}catch(e){}
 if(!SAVE.v2){SAVE.v2=1;SAVE.stars={};SAVE.unlocked=Math.min(SAVE.unlocked||0,4);SAVE.gold=SAVE.gold||0;SAVE.up=SAVE.up||{};SAVE.cleared={}}
 // 舊存檔：已經玩過的人，起始三位維持原本的狐狸、黑貓、弓手
-if(!SAVE.starters&&(SAVE.unlocked>0||Object.keys(SAVE.cleared||{}).length))SAVE.starters=[0,1,2];
+if(!SAVE.starters&&!SAVE.pickAgain&&(SAVE.unlocked>0||Object.keys(SAVE.cleared||{}).length))SAVE.starters=[0,1,2];
 function save(){try{localStorage.setItem('bwh_save',JSON.stringify(SAVE))}catch(e){}}
 function totalStars(){return Object.values(SAVE.stars).reduce((a,b)=>a+b,0)}
 
@@ -1511,7 +1511,7 @@ function openStarter(){
    d.innerHTML=`${k>=0?`<span class="ord">${k+1}</span>`:''}<span class="el">${EICON[H.c]}</span><img src="${IMG['hero'+id].src}"><b>${H.name}</b><span style="color:${COLORS[H.c]};font-weight:900">${ELEM[H.c]}屬性</span><br><small>大招：${H.skill}</small>`;
    d.onclick=()=>{const j=sel.indexOf(id);if(j>=0)sel.splice(j,1);else{if(sel.length>=3){tip('最多選 3 位');return}sel.push(id);Audio_.voice('voice_atk'+id)}Audio_.play('stick',.5,1.3);draw()};
    box.appendChild(d)})};
- $('bStOk').onclick=()=>{if(sel.length!==3)return;SAVE.starters=sel.slice();SAVE.party=sel.slice();save();$('mStart').classList.remove('on');Audio_.voice('voice_skill'+sel[0]);goMap()};
+ $('bStOk').onclick=()=>{if(sel.length!==3)return;SAVE.starters=sel.slice();delete SAVE.pickAgain;SAVE.party=sel.slice();save();$('mStart').classList.remove('on');Audio_.voice('voice_skill'+sel[0]);goMap()};
  draw();$('mStart').classList.add('on');
 }
 function openParty(back){
