@@ -209,7 +209,9 @@ async function renderBoard(){const L=$('blist');$('bnote').textContent=bMode==='
   const sc=document.createElement('span');sc.className='sc';sc.textContent=bMode==='cat'||bMode==='bub'?'★'+val(r):bMode==='snow'?val(r)+' 站':val(r)+' 分';
   li.append(rk,nm,sc);L.appendChild(li)})}
 document.querySelector('.btabs').addEventListener('click',e=>{const b=e.target.closest('.bt');if(!b)return;bMode=b.dataset.b;document.querySelectorAll('.bt').forEach(x=>x.classList.toggle('on',x===b));renderBoard()});
-(async()=>{if(typeof claude==='undefined'){$('blist').innerHTML='<li class="bempty">🏗️ 排行榜準備中，很快開放！</li>';return}const tm=setTimeout(()=>{if(!rows.length)$('blist').innerHTML='<li class="bempty">排行榜暫時讀不到，請稍後再試</li>'},10000);
+(async()=>{if(typeof claude==='undefined'){/* GitHub 版：先顯示 11/25 備份的排行榜，雲端開放後改成即時 */
+  rows=[{id:'u_S6aI_w7Zu488P7w0lUjgvg',name:'Eunice',catStars:77,catClear:29,snow:7,bub:14,total:112,t:1795604059284},{id:'u_yzfOXX2vnb9HZHRvVDwumg',name:'艾力斯',catStars:23,catClear:9,snow:39,bub:28,total:168,t:1795607391053}];
+  const nt=$('bnote');const orig=renderBoard;await renderBoard();const tag=document.createElement('p');tag.className='bnote';tag.textContent='📌 這是 11/25 備份的排行榜，雲端同步開放後會即時更新';$('blist').before(tag);return}const tm=setTimeout(()=>{if(!rows.length)$('blist').innerHTML='<li class="bempty">排行榜暫時讀不到，請稍後再試</li>'},10000);
  try{bdb=await claude.use('db');const u=await claude.use('user');myId=u&&await u.id();if(!bdb){clearTimeout(tm);$('blist').innerHTML='<li class="bempty">登入 Claude 後才看得到排行榜</li>';return}
   bdb.collection('board').onSnapshot(q=>{clearTimeout(tm);rows=(q.docs||q||[]).map(d=>({id:d.id,...(typeof d.data==='function'?d.data():(d.data||{}))}));renderSoon()},()=>{clearTimeout(tm);$('blist').innerHTML='<li class="bempty">排行榜暫時讀不到</li>'});
   setTimeout(pushBoard,1500)}catch(e){clearTimeout(tm)}})();
