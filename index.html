@@ -151,11 +151,26 @@ function merge(a,b){const out={...b,...a};
   const v=!x?y:!y?x:(ka[0]!==kb[0]?(ka[0]>kb[0]?x:y):ka[1]!==kb[1]?(ka[1]>kb[1]?x:y):(ka[2]>=kb[2]?x:y));if(v)out.bwh_save=JSON.stringify(v);else delete out.bwh_save}
  return out}
 let ref=null,lastUp='',busy=false,cloudLast={},cloudOK=false;const syncEl=$('sync');
+/* ===== GitHub 版雲端：Firebase（匿名登入 + Firestore），依玩家名字存檔，換手機輸入同名字就接續 ===== */
+const FBC={apiKey:"AIzaSyCt-u6pKUmC1704gmwIDOjnVkU6x-nrBaA",authDomain:"alex-game-world.firebaseapp.com",projectId:"alex-game-world",storageBucket:"alex-game-world.firebasestorage.app",messagingSenderId:"359859514722",appId:"1:359859514722:web:ba2f3140d62e821f45d03b"};
+const FBM=typeof claude==='undefined';let FBP=null,fbName='';const sleep=t=>new Promise(r=>setTimeout(r,t));
+function nid(n){n=String(n||'').trim().toLowerCase();let h='';new TextEncoder().encode(n).forEach(b=>h+=b.toString(16).padStart(2,'0'));return 'n_'+h}
+function fbInit(){if(FBP)return FBP;const V='https://www.gstatic.com/firebasejs/10.14.1/';
+ FBP=(async()=>{const[A,U,F]=await Promise.all([import(V+'firebase-app.js'),import(V+'firebase-auth.js'),import(V+'firebase-firestore-lite.js')]);
+  const app=A.initializeApp(FBC);await U.signInAnonymously(U.getAuth(app));const db=F.getFirestore(app);
+  const wrap=(path,extra)=>{const[c,id]=path.split('/');const r=F.doc(db,c,id);return{async get(){const x=await F.getDoc(r);return{exists:x.exists(),data:()=>x.data()}},set:o=>F.setDoc(r,{...o,...(extra?extra():{})})}};
+  return{db,F,wrap,async list(c){const q=await F.getDocs(F.collection(db,c));return q.docs.map(d=>({id:d.id,...d.data()}))}}})();
+ FBP.catch(()=>{FBP=null});return FBP}
+async function fbUseName(){const n=pname();if(!n||n===fbName)return;fbName=n;
+ try{const B=await fbInit();const id=nid(n);ref=B.wrap('saves/'+id,()=>({name:pname()}));const snap=await ref.get();if(fbName!==n)return;
+  const cloud=snap.exists?(snap.data().keys||{}):{};cloudLast=cloud;const m=merge(readLocal(),cloud);KEYS.forEach(k=>{if(m[k]!=null)LS.set(k,m[k])});LS.set('player_name',JSON.stringify(n));
+  lastUp='';lastBoard='';myId=id;bdb={doc:p=>B.wrap(p)};cloudOK=true;prog();await push();if(!lastUp)msg('雲端同步：已同步','ok');pushBoard().then(loadBoard)}
+ catch(e){fbName='';msg('雲端同步：暫時連不上，進度先存在本機','off')}}
 function msg(t,c){syncEl.textContent=t;syncEl.className='sync '+(c||'')}
 async function push(){if(!ref||busy)return;const cur=merge(readLocal(),cloudLast);KEYS.forEach(k=>{if(cur[k]!=null&&LS.get(k)!==cur[k])LS.set(k,cur[k])});const js=JSON.stringify(cur);if(js===lastUp)return;busy=true;
  try{await ref.set({keys:cur,t:Date.now()});lastUp=js;cloudLast=cur;msg('雲端同步：已同步 '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}),'ok')}
  catch(e){msg(e&&e.code==='quota_exceeded'?'雲端同步：空間已滿，進度只存在本機':'雲端同步：暫時連不上，進度先存在本機','off')}busy=false}
-(async()=>{if(typeof claude==='undefined'){msg('進度存在這台裝置上（雲端同步準備中）','off');setTimeout(checkName,300);return}const tm=setTimeout(()=>msg('雲端同步：暫時連不上，進度先存在本機','off'),10000);
+(async()=>{if(FBM){msg('雲端同步：連線中…','off');setTimeout(checkName,300);await sleep(0);try{await profP}catch(e){}while(!pname())await sleep(500);await fbUseName();return}const tm=setTimeout(()=>msg('雲端同步：暫時連不上，進度先存在本機','off'),10000);
  try{const db=await claude.use('db'),user=await claude.use('user');const id=user&&await user.id();
   if(!db||!id){clearTimeout(tm);checkName();msg('雲端同步：登入 Claude 後才能跨裝置同步，目前存在本機','off');return}
   ref=db.collection('data/users/'+id).doc('gamesave');const snap=await ref.get();clearTimeout(tm);
@@ -167,7 +182,7 @@ function pname(){try{const v=LS.get('player_name');return v?JSON.parse(v):''}cat
 function askName(force){const d=$('nameDlg'),inp=$('nameIn');inp.value=pname();$('nameErr').textContent='';d.hidden=false;setTimeout(()=>inp.focus(),50);d.dataset.force=force?'1':''}
 $('nameForm').addEventListener('submit',e=>{e.preventDefault();const v=$('nameIn').value.trim().replace(/\s+/g,' ');
  if(!v){$('nameErr').textContent='請輸入名字';return}if(v.length>12){$('nameErr').textContent='名字最多 12 個字';return}
- LS.set('player_name',JSON.stringify(v));$('nameDlg').hidden=true;$('myName').textContent='✏️ 我的名字：'+v;lastBoard='';pushBoard();push()});
+ LS.set('player_name',JSON.stringify(v));$('nameDlg').hidden=true;$('myName').textContent='✏️ 我的名字：'+v;lastBoard='';if(FBM)fbUseName();else{pushBoard();push()}});
 $('nameDlg').addEventListener('click',e=>{if(e.target.id==='nameDlg'&&!$('nameDlg').dataset.force)$('nameDlg').hidden=true});
 $('myName').onclick=()=>askName(false);
 /* ===== 匯出存檔碼：搬家到新網站用 ===== */
@@ -183,7 +198,7 @@ $('impGo').onclick=async()=>{try{const k=await readCode($('impTxt').value);const
  $('impDlg').hidden=true;prog();const n=pname();$('myName').textContent=n?'✏️ 我的名字：'+n:'✏️ 設定名字';$('nameDlg').hidden=!!n;msg('✅ 存檔已匯入！','ok');try{push()}catch(e){}}catch(e){$('impErr').textContent='代碼看起來不完整，請確認整串都有複製到'}};
 /* 專屬連結：網址後面加 #p=名字，第一次打開自動載入那位玩家的進度（只會增加不會減少） */
 const PROFILES={alex:'AGW1z.H4sIAMDwBmsC/22TTZKbMBCF76I1C1oaIPY1sgwpF8YaQVkISgJcLhcHSA6QTQ6RG+Q2SeUYkUSrM+XMxt16+vkeevKDrewIGZv9b3UoSiiBl5xXGbvKu2PHBzvfupNrVsmO7FEzNzfW1V6vWe6LyGoGWDlWgfUFa4G19JX7WmH9UAdyzQ44hhwFCCfyzXeL0WN7lZcwEZaoUYe+KIswOe0+2q6xSoYlQe2CCnnY3WrZ2LgZ3QK6BXQL6BbQLaBbQLeAbuHJLfznFgJvaux894NPUGXey+Gz19bECRc3y3h3b+fnZcYFvvt47bVO66U0u3NppFV3lK107SJxoPuhj9u3jWV7UObicwI/Gl71aZI+Vlazs7+HmqEYE9zDzNPNY30vQf6UoHhKUGx47p5VoOdemXRzl/ZkmkFGC3++/Pz19fvvbz+iD2fG2+kyGnxUehnO0uJH7WZj27fpS+fxZrBVKSGVIlIpI5VCUiklRTEpAOo4dYK6F+rofCAAEAEIAcTgxODE4MTgxODE4MTgxODE4MTgxBDEEMQQxBDEEMQQxBDEEMQQxBCRsaVUOmnHmNjrv6SGxfWtF2e7SNLWUXuJF0lw3ThhnCu+DzdJE99nFf6NjevS254u6eXsW+OrfXu6o9O37S9ndFArowQAAA==',eunice:'AGW1z.H4sIAJbyBmsC/3WQvW6EMBCE32VrCtZgOOhS5AmuRULAOReEMYhfnRDvHi+3m1RpmG+xPWPPARvkGMDiv2mmkzAOdaZucQCdec2QH9B/2XJeqskPcBQQFpBHQQHIqlgj1phVsyasKeuNNROfX0NxRLFE8UQxRXFFsUXxRTFGclZ0s1AABZRAJBALaIFEIBUgZ3VCcFWxOjs0ne8iCv2f2Q17+RiceZdj1742U0GNFlCbSrBtDNMy7I7xqQUSAYpESqr373KuNra96vdL/9SvuH7F9SuuX50e3vc1Dz8nFDFYQtRhTIsjudK2xvrbXrs4BDkEOQQ5BDkEOQTp9CY7lnX5o3vXWsvj2Dbdx7NqnbxwtNXLTKWrenpkAZ+ru1qC8/wBWFdxW5QCAAA='};
-(async()=>{const m=(location.search+location.hash).match(/[?&#]p=([a-z0-9_]+)/i);if(!m)return;const c=PROFILES[m[1].toLowerCase()];if(!c)return;
+const profP=(async()=>{const m=(location.search+location.hash).match(/[?&#]p=([a-z0-9_]+)/i);if(!m)return;const c=PROFILES[m[1].toLowerCase()];if(!c)return;
  try{const k=await readCode(c);const mm=merge(readLocal(),k);KEYS.forEach(x=>{if(mm[x]!=null)LS.set(x,mm[x])});if(k.player_name)LS.set('player_name',k.player_name);
   history.replaceState(null,'',location.pathname);prog();const n=pname();$('myName').textContent='✏️ 我的名字：'+n;$('nameDlg').hidden=true;nameChecked=true;msg('✅ 歡迎 '+n+'！你的進度已經載入','ok')}catch(e){}})();
 $('expCopy').onclick=()=>copyTxt($('expTxt').value);$('expClose').onclick=()=>$('expDlg').hidden=true;
@@ -214,9 +229,11 @@ async function renderBoard(){const L=$('blist');$('bnote').textContent=bMode==='
   const sc=document.createElement('span');sc.className='sc';sc.textContent=bMode==='cat'||bMode==='bub'?'★'+val(r):bMode==='snow'?val(r)+' 站':val(r)+' 分';
   li.append(rk,nm,sc);L.appendChild(li)})}
 document.querySelector('.btabs').addEventListener('click',e=>{const b=e.target.closest('.bt');if(!b)return;bMode=b.dataset.b;document.querySelectorAll('.bt').forEach(x=>x.classList.toggle('on',x===b));renderBoard()});
-(async()=>{if(typeof claude==='undefined'){/* GitHub 版：先顯示 11/25 備份的排行榜，雲端開放後改成即時 */
-  rows=[{id:'u_S6aI_w7Zu488P7w0lUjgvg',name:'Eunice',catStars:77,catClear:29,snow:7,bub:14,total:112,t:1795604059284},{id:'u_yzfOXX2vnb9HZHRvVDwumg',name:'艾力斯',catStars:23,catClear:9,snow:39,bub:28,total:168,t:1795607391053}];
-  const nt=$('bnote');const orig=renderBoard;await renderBoard();const tag=document.createElement('p');tag.className='bnote';tag.textContent='📌 這是 11/25 備份的排行榜，雲端同步開放後會即時更新';$('blist').before(tag);return}const tm=setTimeout(()=>{if(!rows.length)$('blist').innerHTML='<li class="bempty">排行榜暫時讀不到，請稍後再試</li>'},10000);
+const STATIC=[{name:'Eunice',catStars:77,catClear:29,snow:7,bub:14,total:112,t:1795604059284},{name:'艾力斯',catStars:23,catClear:9,snow:39,bub:28,total:168,t:1795607391053}];
+async function loadBoard(){if(!FBM)return;try{const B=await fbInit();const live=await B.list('board');
+  rows=[...live,...STATIC.filter(s=>!live.some(l=>l.id===nid(s.name))).map(s=>({id:nid(s.name),...s}))];renderSoon()}catch(e){}}
+(async()=>{if(FBM){/* GitHub 版：先秀 11/25 備份，Firebase 連上後換成即時排行榜（每 30 秒更新） */
+  rows=STATIC.map(s=>({id:nid(s.name),...s}));renderBoard();loadBoard();setInterval(loadBoard,30000);return}const tm=setTimeout(()=>{if(!rows.length)$('blist').innerHTML='<li class="bempty">排行榜暫時讀不到，請稍後再試</li>'},10000);
  try{bdb=await claude.use('db');const u=await claude.use('user');myId=u&&await u.id();if(!bdb){clearTimeout(tm);$('blist').innerHTML='<li class="bempty">登入 Claude 後才看得到排行榜</li>';return}
   bdb.collection('board').onSnapshot(q=>{clearTimeout(tm);rows=(q.docs||q||[]).map(d=>({id:d.id,...(typeof d.data==='function'?d.data():(d.data||{}))}));renderSoon()},()=>{clearTimeout(tm);$('blist').innerHTML='<li class="bempty">排行榜暫時讀不到</li>'});
   setTimeout(pushBoard,1500)}catch(e){clearTimeout(tm)}})();
