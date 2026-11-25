@@ -1472,7 +1472,7 @@ function buildMap(){
  const sc=$('mapScroll');const wh=sc.clientHeight*2.4;
  for(let w=WORLDS.length-1;w>=0;w--){
   const d=document.createElement('div');d.className='world';d.style.height=wh+'px';
-  const im=IMG[WORLDS[w].bg];if(ok(im))d.style.backgroundImage=`linear-gradient(#0003,#0003),url(${im.src})`;
+  const bk=WORLDS[w].bg,setBg=()=>{const im=IMG[bk];if(ok(im))d.style.backgroundImage=`linear-gradient(#0003,#0003),url(${im.src})`};setBg();if(!ok(IMG[bk]))wantImg(bk).then(setBg);d.style.backgroundColor='#2a2350';
   const wlock=w*PER>SAVE.unlocked;
   d.innerHTML=`<div class="wname">世界 ${w+1}・${WORLDS[w].name}${wlock?' 🔒':''}<small>${WORLDS[w].feat}</small></div>`;
   const pts=[];
