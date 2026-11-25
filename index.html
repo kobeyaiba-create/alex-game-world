@@ -153,7 +153,12 @@ function merge(a,b){const out={...b,...a};
 let ref=null,lastUp='',busy=false,cloudLast={},cloudOK=false;const syncEl=$('sync');
 /* ===== GitHub 版雲端：Firebase（匿名登入 + Firestore），依玩家名字存檔，換手機輸入同名字就接續 ===== */
 const FBC={apiKey:"AIzaSyCt-u6pKUmC1704gmwIDOjnVkU6x-nrBaA",authDomain:"alex-game-world.firebaseapp.com",projectId:"alex-game-world",storageBucket:"alex-game-world.firebasestorage.app",messagingSenderId:"359859514722",appId:"1:359859514722:web:ba2f3140d62e821f45d03b"};
-const FBM=typeof claude==='undefined';let FBP=null,fbName='';const sleep=t=>new Promise(r=>setTimeout(r,t));
+const FBM=typeof claude==='undefined';let FBP=null,fbName='',curR=0;
+/* 這台裝置的存檔屬於誰：換成別人的名字時先清掉本機進度，避免把兩個人的進度混在一起 */
+const SETK=['mfl_snd','mfl_music','snow_snd','snow_music','mfl_mvol','mfl_svol','snow_mvol','snow_svol','bwh_snd','player_name'];
+const START_NAME=(()=>{try{const v=localStorage.getItem('player_name');return v?JSON.parse(v):''}catch(e){return ''}})();
+function owner(){return LS.get('agw_owner')||START_NAME}
+function clearGame(){KEYS.forEach(k=>{if(!SETK.includes(k))LS.set(k,null)});cloudLast={};lastUp=''}const sleep=t=>new Promise(r=>setTimeout(r,t));
 function nid(n){n=String(n||'').trim().toLowerCase();let h='';new TextEncoder().encode(n).forEach(b=>h+=b.toString(16).padStart(2,'0'));return 'n_'+h}
 function fbInit(){if(FBP)return FBP;const V='https://www.gstatic.com/firebasejs/10.14.1/';
  FBP=(async()=>{const[A,U,F]=await Promise.all([import(V+'firebase-app.js'),import(V+'firebase-auth.js'),import(V+'firebase-firestore-lite.js')]);
@@ -162,8 +167,12 @@ function fbInit(){if(FBP)return FBP;const V='https://www.gstatic.com/firebasejs/
   return{db,F,wrap,async list(c){const q=await F.getDocs(F.collection(db,c));return q.docs.map(d=>({id:d.id,...d.data()}))}}})();
  FBP.catch(()=>{FBP=null});return FBP}
 async function fbUseName(){const n=pname();if(!n||n===fbName)return;fbName=n;
- try{const B=await fbInit();const id=nid(n);ref=B.wrap('saves/'+id,()=>({name:pname()}));const snap=await ref.get();if(fbName!==n)return;
-  const cloud=snap.exists?(snap.data().keys||{}):{};cloudLast=cloud;const m=merge(readLocal(),cloud);KEYS.forEach(k=>{if(m[k]!=null)LS.set(k,m[k])});LS.set('player_name',JSON.stringify(n));
+ try{const B=await fbInit();const id=nid(n);ref=B.wrap('saves/'+id,()=>({name:pname(),...(curR?{r:curR}:{})}));const snap=await ref.get();if(fbName!==n)return;
+  const d=snap.exists?snap.data():{},cloud=d.keys||{};const own=owner();
+  if(own&&own!==n)clearGame();/* 換人：本機進度不帶過去 */
+  curR=+d.r||0;if(curR&&LS.get('agw_r_'+id)!==String(curR)){clearGame()}/* 雲端被重整過：以雲端為準 */
+  if(curR)LS.set('agw_r_'+id,String(curR));LS.set('agw_owner',n);
+  cloudLast=cloud;const m=merge(readLocal(),cloud);KEYS.forEach(k=>{if(m[k]!=null)LS.set(k,m[k])});LS.set('player_name',JSON.stringify(n));
   lastUp='';lastBoard='';myId=id;bdb={doc:p=>B.wrap(p)};cloudOK=true;prog();await push();if(!lastUp)msg('雲端同步：已同步','ok');pushBoard().then(loadBoard)}
  catch(e){fbName='';msg('雲端同步：暫時連不上，進度先存在本機','off')}}
 function msg(t,c){syncEl.textContent=t;syncEl.className='sync '+(c||'')}
@@ -199,7 +208,7 @@ $('impGo').onclick=async()=>{try{const k=await readCode($('impTxt').value);const
 /* 專屬連結：網址後面加 #p=名字，第一次打開自動載入那位玩家的進度（只會增加不會減少） */
 const PROFILES={alex:'AGW1z.H4sIAMDwBmsC/22TTZKbMBCF76I1C1oaIPY1sgwpF8YaQVkISgJcLhcHSA6QTQ6RG+Q2SeUYkUSrM+XMxt16+vkeevKDrewIGZv9b3UoSiiBl5xXGbvKu2PHBzvfupNrVsmO7FEzNzfW1V6vWe6LyGoGWDlWgfUFa4G19JX7WmH9UAdyzQ44hhwFCCfyzXeL0WN7lZcwEZaoUYe+KIswOe0+2q6xSoYlQe2CCnnY3WrZ2LgZ3QK6BXQL6BbQLaBbQLeAbuHJLfznFgJvaux894NPUGXey+Gz19bECRc3y3h3b+fnZcYFvvt47bVO66U0u3NppFV3lK107SJxoPuhj9u3jWV7UObicwI/Gl71aZI+Vlazs7+HmqEYE9zDzNPNY30vQf6UoHhKUGx47p5VoOdemXRzl/ZkmkFGC3++/Pz19fvvbz+iD2fG2+kyGnxUehnO0uJH7WZj27fpS+fxZrBVKSGVIlIpI5VCUiklRTEpAOo4dYK6F+rofCAAEAEIAcTgxODE4MTgxODE4MTgxODE4MTgxBDEEMQQxBDEEMQQxBDEEMQQxBCRsaVUOmnHmNjrv6SGxfWtF2e7SNLWUXuJF0lw3ThhnCu+DzdJE99nFf6NjevS254u6eXsW+OrfXu6o9O37S9ndFArowQAAA==',eunice:'AGW1z.H4sIAJbyBmsC/3WQvW6EMBCE32VrCtZgOOhS5AmuRULAOReEMYhfnRDvHi+3m1RpmG+xPWPPARvkGMDiv2mmkzAOdaZucQCdec2QH9B/2XJeqskPcBQQFpBHQQHIqlgj1phVsyasKeuNNROfX0NxRLFE8UQxRXFFsUXxRTFGclZ0s1AABZRAJBALaIFEIBUgZ3VCcFWxOjs0ne8iCv2f2Q17+RiceZdj1742U0GNFlCbSrBtDNMy7I7xqQUSAYpESqr373KuNra96vdL/9SvuH7F9SuuX50e3vc1Dz8nFDFYQtRhTIsjudK2xvrbXrs4BDkEOQQ5BDkEOQTp9CY7lnX5o3vXWsvj2Dbdx7NqnbxwtNXLTKWrenpkAZ+ru1qC8/wBWFdxW5QCAAA='};
 const profP=(async()=>{const m=(location.search+location.hash).match(/[?&#]p=([a-z0-9_]+)/i);if(!m)return;const c=PROFILES[m[1].toLowerCase()];if(!c)return;
- try{const k=await readCode(c);const mm=merge(readLocal(),k);KEYS.forEach(x=>{if(mm[x]!=null)LS.set(x,mm[x])});if(k.player_name)LS.set('player_name',k.player_name);
+ try{const k=await readCode(c);const pn=J(k.player_name,'');if(owner()&&pn&&owner()!==pn)clearGame();const mm=merge(readLocal(),k);KEYS.forEach(x=>{if(mm[x]!=null)LS.set(x,mm[x])});if(k.player_name)LS.set('player_name',k.player_name);if(pn)LS.set('agw_owner',pn);
   history.replaceState(null,'',location.pathname);prog();const n=pname();$('myName').textContent='✏️ 我的名字：'+n;$('nameDlg').hidden=true;nameChecked=true;msg('✅ 歡迎 '+n+'！你的進度已經載入','ok')}catch(e){}})();
 $('expCopy').onclick=()=>copyTxt($('expTxt').value);$('expClose').onclick=()=>$('expDlg').hidden=true;
 let nameChecked=false;function checkName(){if(nameChecked)return;nameChecked=true;const n=pname();$('myName').textContent=n?'✏️ 我的名字：'+n:'✏️ 設定名字';if(!n)askName(true)}
