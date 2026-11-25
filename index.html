@@ -216,7 +216,7 @@ let nameChecked=false;function checkName(){if(nameChecked)return;nameChecked=tru
 document.querySelectorAll('.cart').forEach(c=>c.addEventListener('click',e=>{if(!pname()){e.stopImmediatePropagation();e.preventDefault();askName(true)}},true));
 /* ===== 排行榜：每人一筆 board/<id>，大家都看得到，只能改自己的 ===== */
 let myId=null,bdb=null,rows=[],bMode='all',lastBoard='',NAMES={},rbT=0;
-function renderSoon(){if(rbT)return;rbT=requestAnimationFrame(()=>{rbT=0;renderBoard()})}
+function renderSoon(){if(rbT)return;const f=()=>{if(!rbT)return;rbT=0;renderBoard()};rbT=1;requestAnimationFrame(f);setTimeout(f,300)}
 function stats(){const J2=(k,d)=>{try{const v=LS.get(k);return v?JSON.parse(v):d}catch(e){return d}};
  const st=J2('mfl_stars',{})||{},sd=J2('snow_done',{})||{};const catStars=Object.values(st).reduce((a,b)=>a+(+b||0),0),catClear=Object.keys(st).length,snow=Object.values(sd).filter(Boolean).length;
  const bs=J2('bwh_save',null)||{},bub=Object.values(bs.stars||{}).reduce((a,b)=>a+(+b||0),0);
