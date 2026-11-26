@@ -212,7 +212,7 @@ const ART={
  m_mummy:'art/m_mummy.webp',m_scorp:'art/m_scorp.webp',m_cactus:'art/m_cactus.webp',m_fireimp:'art/m_fireimp.webp',m_lizard:'art/m_lizard.webp',m_turtle:'art/m_turtle.webp',m_puffer:'art/m_puffer.webp',m_octo:'art/m_octo.webp',m_jelly:'art/m_jelly.webp',m_cloudbird:'art/m_cloudbird.webp',m_wind:'art/m_wind.webp',m_airship:'art/m_airship.webp',m_pumpkin:'art/m_pumpkin.webp',m_skeleton:'art/m_skeleton.webp',m_vamp:'art/m_vamp.webp',m_hedgehog:'art/m_hedgehog.webp',m_gnome:'art/m_gnome.webp',m_gemgolem:'art/m_gemgolem.webp',m_starfairy:'art/m_starfairy.webp',m_eye:'art/m_eye.webp',m_knight:'art/m_knight.webp',m_pharaoh:'art/m_pharaoh.webp',m_ifrit:'art/m_ifrit.webp',m_whale:'art/m_whale.webp',m_griffin:'art/m_griffin.webp',m_necro:'art/m_necro.webp',m_crydragon:'art/m_crydragon.webp',m_chaos:'art/m_chaos.webp',
  v_sand:'art/v_sand.webp',v_lava:'art/v_lava.webp',v_whirl:'art/v_whirl.webp',v_tornado:'art/v_tornado.webp',v_curse:'art/v_curse.webp',v_crystal:'art/v_crystal.webp',v_meteor:'art/v_meteor.webp',v_holy:'art/v_holy.webp'
 };
-const SND={bgm_title:'snd/bgm_title.mp3',bgm_battle:'snd/bgm_battle.mp3',bgm_xmas:'snd/bgm_xmas.mp3',bgm_xmas2:'snd/bgm_xmas2.mp3',bgm_xmas3:'snd/bgm_xmas3.mp3',bgm_boss:'snd/bgm_boss.mp3',
+const SND={bgm_title:'snd/bgm_title.mp3',bgm_battle:'snd/bgm_battle.mp3',bgm_xmas:'snd/bgm_xmas.mp3',bgm_xmas2:'snd/bgm_xmas2.mp3',bgm_xmas3:'snd/bgm_xmas3.mp3',bgm_pop1:'snd/bgm_pop1.mp3',bgm_pop2:'snd/bgm_pop2.mp3',bgm_pop3:'snd/bgm_pop3.mp3',bgm_boss:'snd/bgm_boss.mp3',
  shoot:'snd/shoot.mp3',stick:'snd/stick.mp3',pop:'snd/pop.mp3',fall:'snd/fall.mp3',hit:'snd/hit.mp3',hurt:'snd/hurt.mp3',
  skill0:'snd/skill_fire.mp3',skill1:'snd/skill_ice.mp3',skill2:'snd/skill_thunder.mp3',heal:'snd/heal.mp3',
  win:'snd/win.mp3',boss_slam:'snd/boss_slam.mp3',boss_warn:'snd/boss_warn.mp3',bv0_in:'snd/bv0_in.mp3',bv0_atk:'snd/bv0_atk.mp3',bv0_taunt:'snd/bv0_taunt.mp3',bv0_taunt2:'snd/bv0_taunt2.mp3',bv0_die:'snd/bv0_die.mp3',bv1_in:'snd/bv1_in.mp3',bv1_atk:'snd/bv1_atk.mp3',bv1_taunt:'snd/bv1_taunt.mp3',bv1_taunt2:'snd/bv1_taunt2.mp3',bv1_die:'snd/bv1_die.mp3',bv2_in:'snd/bv2_in.mp3',bv2_atk:'snd/bv2_atk.mp3',bv2_taunt:'snd/bv2_taunt.mp3',bv2_taunt2:'snd/bv2_taunt2.mp3',bv2_die:'snd/bv2_die.mp3',
@@ -238,16 +238,17 @@ const Audio_={on:true,buf:{},ctx:null,bgm:null,bgmName:null,
  init(){if(this.ctx){if(this.ctx.state!=='running')this.ctx.resume().catch(()=>{});return}try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();if(this.ctx.state!=='running')this.ctx.resume().catch(()=>{});this.master=this.ctx.createGain();this.master.connect(this.ctx.destination);
   const tp=document.getElementById('tapSnd');if(tp)tp.style.display='none';
   const rk=k=>k===this.bgmName?0:/^(bgm|bv|mv|voice|ult)/.test(k)?(k.startsWith('bgm')?3:2):1;
-  this.q=Object.keys(SND).sort((a,b)=>rk(a)-rk(b));this.act=0;this.pump()}catch(e){}},
+  this.q=Object.keys(SND).filter(k=>!k.startsWith('bgm')||k===this.bgmName||k==='bgm_title').sort((a,b)=>rk(a)-rk(b));/* 背景音樂只在要播時才載，省手機記憶體 */this.act=0;this.pump()}catch(e){}},
  load(k){if(!this.ctx||!SND[k]||this.buf[k]||(this.ing||(this.ing={}))[k])return;this.ing[k]=1;this.act++;
-  fetch(SND[k]).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>this.ctx.decodeAudioData(b)).then(d=>{this.buf[k]=d;if(k===this.bgmName&&!this.bgm)this.music(k,true)}).catch(()=>{}).finally(()=>{this.act--;this.pump()})},
+  fetch(SND[k]).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>this.ctx.decodeAudioData(b)).then(d=>{this.buf[k]=d;if(k===this.bgmName&&!this.bgm)this.music(k,true)}).catch(()=>{}).finally(()=>{this.act--;delete this.ing[k];this.pump()})},
  pump(){while(this.q&&this.q.length&&(this.act||0)<3){const k=this.q.shift();if(!this.buf[k]&&!(this.ing&&this.ing[k]))this.load(k)}},
  play(k,vol=1,rate=1){if(!this.on||!this.ctx||!this.buf[k])return;const s=this.ctx.createBufferSource();s.buffer=this.buf[k];s.playbackRate.value=rate;const g=this.ctx.createGain();g.gain.value=vol;s.connect(g);g.connect(this.master);s.start()},
  voice(k){if(!this.on||!this.ctx||!this.buf[k])return;if(this.vsrc){try{this.vsrc.stop()}catch(e){}}const s=this.ctx.createBufferSource();s.buffer=this.buf[k];const g=this.ctx.createGain();g.gain.value=1.15;s.connect(g);g.connect(this.master);s.start();this.vsrc=s;this.vUntil=this.ctx.currentTime+s.buffer.duration;
   if(this.bgm){const t=this.ctx.currentTime;this.bgm.g.gain.setTargetAtTime(.14,t,.05);this.bgm.g.gain.setTargetAtTime(this.on?.38:0,t+s.buffer.duration,.3)}},
+ trim(k){/* 只留：正在播的、主畫面、預先準備的下一首 */for(const x in this.buf)if(x.startsWith('bgm')&&x!==k&&x!=='bgm_title'&&x!==this.keep)delete this.buf[x]},
  vBusy(){return this.ctx&&this.vUntil&&this.ctx.currentTime<this.vUntil},
  music(k,force){if(this.bgmName===k&&!force&&this.bgm)return;this.bgmName=k;if(this.bgm){try{this.bgm.g.gain.setTargetAtTime(0,this.ctx.currentTime,.3);this.bgm.s.stop(this.ctx.currentTime+1.2)}catch(e){}this.bgm=null}
-  if(!this.ctx)return;if(!this.buf[k]){this.load(k);return}const s=this.ctx.createBufferSource();s.buffer=this.buf[k];s.loop=true;const g=this.ctx.createGain();g.gain.value=this.on?.38:0;s.connect(g);g.connect(this.master);s.start();this.bgm={s,g}},
+  if(!this.ctx)return;this.trim(k);if(!this.buf[k]){this.load(k);return}const s=this.ctx.createBufferSource();s.buffer=this.buf[k];s.loop=true;const g=this.ctx.createGain();g.gain.value=this.on?.38:0;s.connect(g);g.connect(this.master);s.start();this.bgm={s,g}},
  toggle(){this.on=!this.on;if(this.bgm)this.bgm.g.gain.value=this.on?.38:0;document.getElementById('sndBtn').textContent=this.on?'🔊':'🔇';try{localStorage.setItem('bwh_snd',this.on?1:0)}catch(e){}}
 };
 
@@ -1462,8 +1463,9 @@ function goTitle(){show('title');buildTitleHeroes();Audio_.music('bgm_title')}
 function goMap(){show('map');buildMap();Audio_.music('bgm_title')}
 let bgmTurn=0;
 // 一般關卡：原本的戰鬥曲和聖誕歌輪流播
-const BATTLE_BGMS=['bgm_battle','bgm_xmas','bgm_xmas2','bgm_xmas3'];
-function nextBattleBgm(){return BATTLE_BGMS[bgmTurn++%BATTLE_BGMS.length]}
+const BATTLE_BGMS=['bgm_battle','bgm_xmas','bgm_xmas2','bgm_xmas3','bgm_pop1','bgm_pop2','bgm_pop3'];
+let lastBgm='',pendBgm='';function pickBgm(no){let k;do{k=BATTLE_BGMS[Math.floor(Math.random()*BATTLE_BGMS.length)]}while(k===no&&BATTLE_BGMS.length>1);return k}
+function nextBattleBgm(){/* 一般關卡隨機挑一首，不跟上一首重複（大王/小王關用 bgm_boss）；同時先準備好下一首 */const k=pendBgm&&pendBgm!==lastBgm?pendBgm:pickBgm(lastBgm);lastBgm=k;bgmTurn++;pendBgm=pickBgm(k);Audio_.keep=pendBgm;setTimeout(()=>Audio_.load(pendBgm),8000);return k}
 function newTips(L){SAVE.seen=SAVE.seen||{};const q=[];const add=(k,t)=>{if(!SAVE.seen[k]){SAVE.seen[k]=1;q.push(t)}};
  if(L.goal==='rescue')add('rescue','🐾 救援關：把小動物周圍的泡泡消光，或讓牠掉下來就能救出！');if(L.goal==='limit')add('limit','🫧 限步關：泡泡數量有限，用完前打倒魔物！');if(L.ice)add('ice','❄️ 冰凍泡泡：第一次只會打破冰，要再消一次！');if(L.chain)add('chain','⛓️ 鎖鏈泡泡：消掉旁邊的泡泡就會解鎖');if(L.energy)add('energy','⚡ 金光能量泡泡：消掉幫全隊補大招！');if(L.i>=1||L.w>0)add('trio','✨ 隱藏技：3 位大招都集滿，就能發動「合體奧義」傷害 ×'+TRIO_MUL+'！');
  if(q.length){save();q.forEach((t,i)=>setTimeout(()=>{if(G&&G.state==='play')tip(t)},1200+i*3200))}}
