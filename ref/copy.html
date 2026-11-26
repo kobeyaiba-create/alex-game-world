@@ -1,6 +1,0 @@
-<!doctype html><meta charset=utf-8><body style="margin:0;font:20px sans-serif">
-<button id=b style="position:fixed;left:0;top:0;width:300px;height:150px;font-size:28px;background:#2a7;color:#fff">COPY</button>
-<img id=im style="position:absolute;top:160px;width:384px">
-<script>const n=new URLSearchParams(location.search).get('n');im.src='ref_'+n+'.jpg';
-b.onclick=async()=>{const r=await fetch('ref_'+n+'.jpg');const bl=await r.blob();const c=document.createElement('canvas');const i=await createImageBitmap(bl);c.width=i.width;c.height=i.height;c.getContext('2d').drawImage(i,0,0);
-const png=await new Promise(r=>c.toBlob(r,'image/png'));try{await navigator.clipboard.write([new ClipboardItem({'image/png':png})]);b.textContent='OK '+n}catch(e){b.textContent='ERR '+e}}</script>

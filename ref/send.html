@@ -1,3 +1,0 @@
-<!doctype html><meta charset=utf-8><body>sending…<script>
-(async()=>{const n=new URLSearchParams(location.search).get('n')||'all';const b=await (await fetch('ref_'+n+'.jpg')).blob();
-const r=new FileReader();r.onload=()=>{try{window.opener.postMessage({ref:r.result,n},'*');document.body.textContent='sent '+r.result.length}catch(e){document.body.textContent='ERR '+e}};r.readAsDataURL(b)})()</script>
