@@ -318,7 +318,7 @@ function drawModFx(){if(!G.mods||!G.mods.length)return;
   ctx.strokeStyle=G.C.night?`rgba(170,200,255,${.6*a})`:`rgba(255,255,255,${.8*a})`;ctx.lineWidth=1.5;ctx.beginPath();for(let i=0;i<70;i++){const x=(i*53+frame*(G.C.night?2:6))%(VW+60)-30,y=(i*97+frame*(G.C.night?9:3))%(VH+40)-20;ctx.moveTo(x,y);ctx.lineTo(x+(G.C.night?-3:-14),y+(G.C.night?12:5))}ctx.stroke()}
  if(G.banner){const b=G.banner,a=Math.min(1,b.t/20);ctx.save();ctx.globalAlpha=a;ctx.font='900 16px system-ui';const w=Math.min(VW-20,ctx.measureText(b.s).width+28);ctx.fillStyle='rgba(20,30,55,.85)';roundRect(VW/2-w/2,96,w,36,18);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(b.s,VW/2,114,VW-40);ctx.restore()}}
 function start(i){const C=STAGES[i];st=i;bgmTheme_(C.night?'night':'snow');money=0;fx=[];texts=[];
- G={C,w:C.w,h:C.h,p:{x:C.start[0],y:C.start[1],face:1,stack:[],cap:Math.round(((C.hard&&C.hard.cap)||12)*1.2),cd:0,anim:0,swing:0,moving:false},
+ G={C,w:C.w,h:C.h,p:{x:C.start[0],y:C.start[1],face:1,stack:[],cap:Math.round(((C.hard&&C.hard.cap)||12)*1.44),cd:0,anim:0,swing:0,moving:false},
   workers:[],fences:C.fences().map(f=>Array.isArray(f)?{p:f}:f),gates:{},
   trees:(C.trees?C.trees():[]).map(t=>({...t,logs:4,hp:4,alive:true,re:0,shake:0})),
   ores:(C.ores?C.ores():[]).map(t=>({...t,hp:5,left:3,alive:true,re:0,shake:0})),
