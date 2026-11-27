@@ -359,7 +359,7 @@ cv.addEventListener('pointerup',finish);cv.addEventListener('pointercancel',fini
 /* ---------- 模擬 ---------- */
 function spawnBee(h){const b=Bodies.circle(h.x+(Math.random()*16-8),h.y+12,9,{isSensor:true,frictionAir:0,collisionFilter:{group:-1}});
  b.kind='bee';b.ph=Math.random()*6.28;b.px=b.position.x;b.py=b.position.y;b.vx=0;b.vy=0;b.side=Math.random()<.5?1:-1;b.dsh=0;b.dcd=40+Math.random()*120;b.tr=[];b.bomb=L.bomb&&Math.random()<L.bomb?1:0;b.fuse=0;b.sc=1;b.spd=1;if(!b.bomb&&L.big&&Math.random()<L.big){b.big=1;b.sc=1.6;b.spd=.78;b.dcd=50+Math.random()*60}Composite.add(eng.world,b);bees.push(b);return b}
-function spawnQueen(){const b=Bodies.circle(W/2,-40,14,{isSensor:true,frictionAir:0,collisionFilter:{group:-1}});b.kind='bee';b.ph=0;b.px=W/2;b.py=-40;b.vx=0;b.vy=0;b.side=1;b.dsh=0;b.dcd=150;b.tr=[];b.bomb=0;b.fuse=0;b.queen=1;b.sc=2.5;b.spd=.55;b.summon=240;Composite.add(eng.world,b);bees.push(b);snd('tick')}
+function spawnQueen(){const b=Bodies.circle(W/2,-40,14,{isSensor:true,frictionAir:0,collisionFilter:{group:-1}});b.kind='bee';b.ph=0;b.px=W/2;b.py=-40;b.vx=0;b.vy=0;b.side=1;b.dsh=0;b.dcd=150;b.tr=[];b.bomb=0;b.fuse=0;b.queen=1;b.sc=2.5;b.spd=.75;b.summon=150;Composite.add(eng.world,b);bees.push(b);snd('tick')}
 function boom(x,y){booms.push({x,y,t:0});snd('tick');
  for(const ln of lines){let md=1e9;for(const q of ln.parts.slice(1))md=Math.min(md,Math.hypot(q.position.x-x,q.position.y-y));if(md>85)continue;
   if(ln.isStatic)Body.setStatic(ln,false);ln.calm=0;ln.win=null;const dx=ln.position.x-x,dy=ln.position.y-y,d=Math.hypot(dx,dy)||1,f=(1-md/85)*6+2;
@@ -391,17 +391,17 @@ function tick(){frame++;if(phase==='draw'){drawFrames++;if(frame%6===0)updHud();
   const BB=beeBlockers();
   for(const b of bees){const dx=cat.position.x-b.px,dy=cat.position.y-b.py,d=Math.hypot(dx,dy)||1;b.ph+=.13;
    const rams=MD.includes('dash')||b.big||b.queen;
-   if(b.queen&&--b.summon<=0){b.summon=300;for(let q=0;q<3;q++){const nb=spawnBee({x:b.px+(q-1)*30,y:b.py});nb.px=nb.position.x;nb.py=nb.position.y}impacts.push({x:b.px,y:b.py-30,t:0,s:'📣'})}
+   if(b.queen&&--b.summon<=0){b.summon=150;for(let q=0;q<3;q++){const nb=spawnBee({x:b.px+(q-1)*30,y:b.py});nb.px=nb.position.x;nb.py=nb.position.y}impacts.push({x:b.px,y:b.py-30,t:0,s:'📣'})}
    if(rams&&b.dsh>0){/* 衝撞：直線猛衝，撞到東西就反彈 */b.dsh--;const k=b.sc||1;let nx=b.px+b.dvx,ny=b.py+b.dvy;
     if(beeBlocked(BB,nx,ny,k)){const bx=beeBlocked(BB,b.px+b.dvx,b.py,k),by=beeBlocked(BB,b.px,b.py+b.dvy,k);const ln=lineAt(b.px+b.dvx*2.2,b.py+b.dvy*2.2)||lineAt(b.px+b.dvx*1.2,b.py+b.dvy*1.2);
      if(bx)b.dvx=-b.dvx*.85;if(by)b.dvy=-b.dvy*.85;if(!bx&&!by){b.dvx=-b.dvx*.85;b.dvy=-b.dvy*.85}
      const a=(Math.random()-.5)*.6,c=Math.cos(a),sn=Math.sin(a);[b.dvx,b.dvy]=[b.dvx*c-b.dvy*sn,b.dvx*sn+b.dvy*c];
-     impacts.push({x:b.px,y:b.py,t:0,s:b.queen?'💥':'✦',big:b.queen?2:b.big?1.4:1});if((b.queen||b.big)&&ln){ram(ln,b.px,b.py,b.queen?3.2:1.4);shake=Math.max(shake,b.queen?8:4);snd('tick')}
-     b.hits=(b.hits||0)+1;if(b.hits>(b.queen?3:4))b.dsh=0}
+     impacts.push({x:b.px,y:b.py,t:0,s:b.queen?'💥':'✦',big:b.queen?2:b.big?1.4:1});if((b.queen||b.big)&&ln){ram(ln,b.px,b.py,b.queen?6.4:1.4);shake=Math.max(shake,b.queen?14:4);snd('tick')}
+     b.hits=(b.hits||0)+1;if(b.hits>(b.queen?6:4))b.dsh=0}
     else{b.px=nx;b.py=ny}b.vx=b.dvx;b.vy=b.dvy;b.k=2;
     Body.setPosition(b,{x:b.px,y:b.py});Body.setVelocity(b,{x:0,y:0});b.tr&&b.tr.push([b.px,b.py]);if(b.tr&&b.tr.length>8)b.tr.shift();
     if(phase==='play'&&Math.abs(b.px-cat.position.x)<30*(b.sc||1)**.7&&Math.abs(b.py-cat.position.y)<36*(b.sc||1)**.7)lose(b.queen?'被女王蜂撞到了！':'被蜜蜂叮到了！');continue}
-   if(rams&&--b.dcd<=0&&d<(b.queen?420:300)){const sp2=(b.queen?4.2:b.big?4.6:5.2)*(sp/2.8),a=(Math.random()-.5)*.5,ux=dx/d,uy=dy/d;b.dvx=(ux*Math.cos(a)-uy*Math.sin(a))*sp2;b.dvy=(ux*Math.sin(a)+uy*Math.cos(a))*sp2;b.dsh=b.queen?70:b.big?50:38;b.hits=0;b.dcd=(b.queen?150:b.big?110:100)+Math.random()*90}
+   if(rams&&--b.dcd<=0&&d<(b.queen?420:300)){const sp2=(b.queen?5.6:b.big?4.6:5.2)*(sp/2.8),a=(Math.random()-.5)*.5,ux=dx/d,uy=dy/d;b.dvx=(ux*Math.cos(a)-uy*Math.sin(a))*sp2;b.dvy=(ux*Math.sin(a)+uy*Math.cos(a))*sp2;b.dsh=b.queen?70:b.big?50:38;b.hits=0;b.dcd=(b.queen?60:b.big?110:100)+Math.random()*(b.queen?45:90)}
    let k=b.spd||1;b.k=k;
    let tx=dx/d*sp*k+Math.cos(b.ph*1.3)*1.5+gust,ty=dy/d*sp*k+Math.sin(b.ph)*1.5;
    if(L.spin&&d>70){const f=Math.min(1,(d-70)/120)*sp*.95*L.spin;tx+=-dy/d*f;ty+=dx/d*f}b.vx+=(tx-b.vx)*.15;b.vy+=(ty-b.vy)*.15;
