@@ -882,29 +882,32 @@ function useSkill(s){
  const L=G.L,weak=MONS[L.mon].weak;
  G.busy=1;G.cutin={h,t:0,go:()=>skillFx(h,L,weak)};Audio_.voice('voice_skill'+h);if(HEROES[h].snd)setTimeout(()=>Audio_.play(HEROES[h].snd,.9),1400);
 }
-/* ===== 隱藏大招：三位夥伴大招同時集滿 → 合體奧義，每招傷害 ×1.8 ===== */
+/* ===== 隱藏大招：3／4／5 位夥伴大招同時集滿 → ×1.8／×2.3／×3 ===== */
 const TRIO_MUL=1.8;
-function trioSlots(){if(!G||!G.party)return[];const r=[];for(let s=0;s<G.party.length;s++)if(G.gauge[s]>=G.need[s])r.push(s);return r.length>=3?r.slice(0,3):[]}
-function trioBtn(){return{x:18,y:SHOOT.y-40,w:250,h:60}}
+/* 3 位：合體奧義 ×1.8；4 位：四神合擊 ×2.3；5 位：五星終極奧義 ×3 */
+const COMBO={3:{m:1.8,n:'合體奧義',i:'✨'},4:{m:2.3,n:'四神合擊',i:'🔥'},5:{m:3,n:'五星終極奧義',i:'🌟'}};
+function trioSlots(){if(!G||!G.party)return[];const r=[];for(let s=0;s<G.party.length;s++)if(G.gauge[s]>=G.need[s])r.push(s);return r.length>=3?r.slice(0,5):[]}
+function comboOf(n){return COMBO[Math.min(5,n)]||COMBO[3]}
+function trioBtn(){const n=trioSlots().length;return{x:18,y:SHOOT.y-40,w:n>=5?330:n===4?280:250,h:60}}
 function useTrio(){
  if(!G||G.state!=='play'||G.shot||G.busy)return;const sl=trioSlots();if(sl.length<3)return;
- const hs=sl.map(s=>G.party[s]);sl.forEach(s=>{G.gauge[s]=0;G.heroAnim[s]=2});
+ const hs=sl.map(s=>G.party[s]),CB=comboOf(hs.length);sl.forEach(s=>{G.gauge[s]=0;G.heroAnim[s]=2});
  const L=G.L,weak=MONS[L.mon].weak;G.busy=1;G.trioSeen=0;
  hs.forEach((h,i)=>setTimeout(()=>{Audio_.play(SKSND[HEROES[h].c],.9)},i*260));Audio_.voice('voice_skill'+hs[0]);
- const g0=G;G.cutin={trio:hs,h:hs[0],t:0,go:()=>{hs.forEach((h,i)=>setTimeout(()=>{if(G===g0&&G.state==='play')skillFx(h,L,weak,TRIO_MUL)},i*420))}};
+ const g0=G;G.cutin={trio:hs,cb:CB,h:hs[0],t:0,go:()=>{hs.forEach((h,i)=>setTimeout(()=>{if(G===g0&&G.state==='play')skillFx(h,L,weak,CB.m)},i*(hs.length>=5?330:420)))}};
 }
 function drawTrioBtn(){const sl=trioSlots();if(!sl.length||G.cutin||G.state!=='play'){
   if(G&&G.state==='play'&&!G.cutin&&G.party&&G.party.length>=3){let f=0;for(let q=0;q<G.party.length;q++)if(G.gauge[q]>=G.need[q])f++;if(f===2&&!G.trio2){G.trio2=1;tip('💡 再集滿 1 位大招，就能發動合體奧義！')}if(f<2)G.trio2=0}return}
- if(!G.trioSeen){G.trioSeen=1;tip('✨ 合體奧義可以發動！傷害 ×'+TRIO_MUL);Audio_.play('ready',.9,.8)}
+ const CB=comboOf(sl.length);if((G.trioSeen||0)<sl.length){G.trioSeen=sl.length;tip(CB.i+' '+CB.n+'可以發動！傷害 ×'+CB.m+(sl.length<G.party.length&&sl.length<5?'（再集滿 1 位升級成'+comboOf(sl.length+1).n+' ×'+comboOf(sl.length+1).m+'）':''));Audio_.play('ready',.9,.8+sl.length*.08)}
  const b=trioBtn(),t=G.t;
  cx.save();cx.globalCompositeOperation='lighter';cx.strokeStyle=`rgba(255,230,120,${.5+.4*Math.sin(t*14)})`;cx.lineWidth=5;
  const pts=sl.map(s=>{const P=slotPos(s);return{x:P.x,y:P.foot-P.h*.55}});
  for(const p of pts){cx.beginPath();cx.moveTo(b.x+b.w/2,b.y+b.h/2);let x=b.x+b.w/2,y=b.y+b.h/2;for(let k=1;k<=6;k++){const f=k/6;x=b.x+b.w/2+(p.x-b.x-b.w/2)*f+(k<6?(Math.random()-.5)*26:0);y=b.y+b.h/2+(p.y-b.y-b.h/2)*f+(k<6?(Math.random()-.5)*26:0);cx.lineTo(x,y)}cx.stroke()}
  cx.restore();
  cx.save();const sc=1+.06*Math.sin(t*10);cx.translate(b.x+b.w/2,b.y+b.h/2);cx.scale(sc,sc);
- const g=cx.createLinearGradient(0,-b.h/2,0,b.h/2);g.addColorStop(0,'#fff6b0');g.addColorStop(.5,'#ffb21e');g.addColorStop(1,'#ff4fa0');
- cx.shadowColor='#ffd23a';cx.shadowBlur=30+12*Math.sin(t*8);cx.fillStyle=g;rr(-b.w/2,-b.h/2,b.w,b.h,b.h/2);cx.fill();cx.shadowBlur=0;cx.lineWidth=4;cx.strokeStyle='#fff';cx.stroke();
- cx.font='900 28px "Zen Maru Gothic"';cx.textAlign='center';cx.textBaseline='middle';cx.lineWidth=6;cx.strokeStyle='#5a1240';cx.strokeText('✨ 合體奧義 ×'+TRIO_MUL,0,2);cx.fillStyle='#fff';cx.fillText('✨ 合體奧義 ×'+TRIO_MUL,0,2);
+ const g=cx.createLinearGradient(0,-b.h/2,0,b.h/2);if(sl.length>=5){g.addColorStop(0,'#ffffff');g.addColorStop(.5,'#b46bff');g.addColorStop(1,'#ff2e6e')}else if(sl.length===4){g.addColorStop(0,'#fff2c4');g.addColorStop(.5,'#ff7a1e');g.addColorStop(1,'#e8263a')}else{g.addColorStop(0,'#fff6b0');g.addColorStop(.5,'#ffb21e');g.addColorStop(1,'#ff4fa0')}
+ cx.shadowColor=sl.length>=5?'#c98bff':sl.length===4?'#ff8a3a':'#ffd23a';cx.shadowBlur=30+12*Math.sin(t*8);cx.fillStyle=g;rr(-b.w/2,-b.h/2,b.w,b.h,b.h/2);cx.fill();cx.shadowBlur=0;cx.lineWidth=4;cx.strokeStyle='#fff';cx.stroke();
+ const lb=CB.i+' '+CB.n+' ×'+CB.m;cx.font='900 '+(sl.length>=5?26:28)+'px "Zen Maru Gothic"';cx.textAlign='center';cx.textBaseline='middle';cx.lineWidth=6;cx.strokeStyle='#5a1240';cx.strokeText(lb,0,2);cx.fillStyle='#fff';cx.fillText(lb,0,2);
  cx.restore()}
 function drawTrioCutin(C,dt){const u=ux,W=UW,H=UH,t=C.t;u.setTransform(US,0,0,US,0,0);u.clearRect(0,0,W,H);
  const fout=t>UL_FIRE+.15?Math.max(0,1-(t-UL_FIRE-.15)/(UL_T-UL_FIRE-.15)):1;
@@ -921,9 +924,9 @@ function drawTrioCutin(C,dt){const u=ux,W=UW,H=UH,t=C.t;u.setTransform(US,0,0,US
   u.save();u.globalCompositeOperation='lighter';u.globalAlpha=e*fout;u.strokeStyle='#fff6b0';u.lineWidth=8;u.beginPath();u.moveTo(x0+pw+sk,0);u.lineTo(x0+pw-sk,H);u.stroke();u.restore();
   if(t>.3+i*.14){u.save();u.globalAlpha=fout;u.font='900 30px "Zen Maru Gothic"';u.textAlign='center';u.lineWidth=7;u.strokeStyle='#14051f';const ty=H*.2+(i%2)*60;u.strokeText(HEROES[h].skill,x0+pw/2,ty);u.fillStyle=col[1];u.fillText(HEROES[h].skill,x0+pw/2,ty);u.restore()}});
  if(t>.55){const k=Math.min(1,(t-.55)/.2),sc=1+(1-k)*2;u.save();u.globalAlpha=k*fout;u.translate(W/2,H*.72);u.scale(sc,sc);u.font='900 96px "Zen Maru Gothic"';u.textAlign='center';
-  u.shadowColor='#ffb21e';u.shadowBlur=40;u.lineWidth=16;u.strokeStyle='#14051f';u.strokeText('合體奧義',0,0);u.shadowBlur=0;
-  const tg=u.createLinearGradient(0,-80,0,20);tg.addColorStop(0,'#ffffff');tg.addColorStop(.5,'#ffe27a');tg.addColorStop(1,'#ff4fa0');u.fillStyle=tg;u.fillText('合體奧義',0,0);
-  u.font='900 52px "Zen Maru Gothic"';u.lineWidth=10;u.strokeText('傷害 ×1.5',0,80);u.fillStyle='#fff6b0';u.fillText('傷害 ×1.5',0,80);u.restore()}
+  const CB=C.cb||COMBO[3];if(CB.n.length>4)u.font='900 '+Math.round(96*4.4/CB.n.length)+'px "Zen Maru Gothic"';u.shadowColor=n>=5?'#c98bff':n===4?'#ff7a1e':'#ffb21e';u.shadowBlur=40+(n-3)*15;u.lineWidth=16;u.strokeStyle='#14051f';u.strokeText(CB.n,0,0);u.shadowBlur=0;
+  const tg=u.createLinearGradient(0,-80,0,20);tg.addColorStop(0,'#ffffff');tg.addColorStop(.5,'#ffe27a');tg.addColorStop(1,'#ff4fa0');u.fillStyle=tg;u.fillText(CB.n,0,0);
+  u.font='900 52px "Zen Maru Gothic"';u.lineWidth=10;u.strokeText('傷害 ×'+CB.m,0,80);u.fillStyle='#fff6b0';u.fillText('傷害 ×'+CB.m,0,80);u.restore()}
  if(t>UL_FIRE-.4&&t<UL_FIRE){const k=(t-(UL_FIRE-.4))/.4;u.save();u.globalCompositeOperation='lighter';u.globalAlpha=k;u.strokeStyle='#fff';u.lineWidth=8+k*24;u.beginPath();u.arc(W/2,H*.5,(1-k)*800+40,0,7);u.stroke();u.restore()}
  const bar=Math.min(1,t/.3)*Math.min(110,H*.08)*fout;u.fillStyle='#000';u.fillRect(0,0,W,bar);u.fillRect(0,H-bar,W,bar);
  u.restore();
@@ -1467,7 +1470,7 @@ const BATTLE_BGMS=['bgm_battle','bgm_xmas','bgm_xmas2','bgm_xmas3','bgm_pop1','b
 let lastBgm='',pendBgm='';function pickBgm(no){let k;do{k=BATTLE_BGMS[Math.floor(Math.random()*BATTLE_BGMS.length)]}while(k===no&&BATTLE_BGMS.length>1);return k}
 function nextBattleBgm(){/* 一般關卡隨機挑一首，不跟上一首重複（大王/小王關用 bgm_boss）；同時先準備好下一首 */const k=pendBgm&&pendBgm!==lastBgm?pendBgm:pickBgm(lastBgm);lastBgm=k;bgmTurn++;pendBgm=pickBgm(k);Audio_.keep=pendBgm;setTimeout(()=>Audio_.load(pendBgm),8000);return k}
 function newTips(L){SAVE.seen=SAVE.seen||{};const q=[];const add=(k,t)=>{if(!SAVE.seen[k]){SAVE.seen[k]=1;q.push(t)}};
- if(L.goal==='rescue')add('rescue','🐾 救援關：把小動物周圍的泡泡消光，或讓牠掉下來就能救出！');if(L.goal==='limit')add('limit','🫧 限步關：泡泡數量有限，用完前打倒魔物！');if(L.ice)add('ice','❄️ 冰凍泡泡：第一次只會打破冰，要再消一次！');if(L.chain)add('chain','⛓️ 鎖鏈泡泡：消掉旁邊的泡泡就會解鎖');if(L.energy)add('energy','⚡ 金光能量泡泡：消掉幫全隊補大招！');if(L.i>=1||L.w>0)add('trio','✨ 隱藏技：3 位大招都集滿，就能發動「合體奧義」傷害 ×'+TRIO_MUL+'！');
+ if(L.goal==='rescue')add('rescue','🐾 救援關：把小動物周圍的泡泡消光，或讓牠掉下來就能救出！');if(L.goal==='limit')add('limit','🫧 限步關：泡泡數量有限，用完前打倒魔物！');if(L.ice)add('ice','❄️ 冰凍泡泡：第一次只會打破冰，要再消一次！');if(L.chain)add('chain','⛓️ 鎖鏈泡泡：消掉旁邊的泡泡就會解鎖');if(L.energy)add('energy','⚡ 金光能量泡泡：消掉幫全隊補大招！');if(L.i>=1||L.w>0)add('trio','✨ 隱藏技：3 位大招都集滿，就能發動「合體奧義」傷害 ×'+TRIO_MUL+'！');if((SAVE.party||[]).length>=4)add('trio45','🔥 大絕招：4 位大招同時集滿＝四神合擊 ×2.3，5 位＝五星終極奧義 ×3！');
  if(q.length){save();q.forEach((t,i)=>setTimeout(()=>{if(G&&G.state==='play')tip(t)},1200+i*3200))}}
 function startLevel(i){const ks=levelImgs(i);if(ks.every(k=>ok(IMG[k])))return startLevelNow(i);const ld=$('loading');ld.style.display='flex';$('ldBar').style.width='0%';let n=0;
  const go=()=>{if(go.d)return;go.d=1;ld.style.display='none';startLevelNow(i)};Promise.all(ks.map(k=>wantImg(k).then(()=>{n++;$('ldBar').style.width=(n/ks.length*100)+'%'}))).then(go);setTimeout(go,4000)}
